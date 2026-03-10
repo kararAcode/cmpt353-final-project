@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  passwordHash String    @map("password_hash")
+  displayName  String    @map("display_name")
+  role         String    @default("member")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  channels   Channel[]
+  posts      Post[]
+  replies    Reply[]
+  votes      Vote[]
+}
+
+model Channel {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdById String    @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  createdBy User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  posts     Post[]
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  channelId String   @map("channel_id")
+  authorId  String   @map("author_id")
+  title    String
+  body     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  channel    Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies    Reply[]
+}
+
+model Reply {
+  id            String   @id @default(cuid())
+  postId        String   @map("post_id")
+  parentReplyId String?  @map("parent_reply_id")
+  authorId      String   @map("author_id")
+  body          String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentReply  Reply?   @relation("ReplyReplies", fields: [parentReplyId], references: [id], onDelete: SetNull)
+  childReplies Reply[]  @relation("ReplyReplies")
+  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Vote {
+  id         String @id @default(cuid())
+  userId     String @map("user_id")
+  targetType String @map("target_type")
+  targetId   String @map("target_id")
+  value      Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetId])
+  @@map("votes")
+}
+
+model Attachment {
+  id         String  @id @default(cuid())
+  targetType String  @map("target_type")
+  targetId   String  @map("target_id")
+  mimeType   String  @map("mime_type")
+  sizeBytes  Int     @map("size_bytes")
+  path       String
+
+  @@map("attachments")
+}
