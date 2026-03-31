@@ -10,10 +10,10 @@ datasource db {
 
 model User {
   id           String    @id @default(cuid())
-  passwordHash String    @map("password_hash")
-  displayName  String    @map("display_name")
+  passwordHash String
+  displayName  String
   role         String    @default("member")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  createdAt    DateTime  @default(now())
 
   channels   Channel[]
   posts      Post[]
@@ -25,8 +25,8 @@ model Channel {
   id          String    @id @default(cuid())
   name        String    @unique
   description String?
-  createdById String    @map("created_by_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  createdById String
+  createdAt   DateTime  @default(now())
 
   createdBy User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   posts     Post[]
@@ -34,11 +34,11 @@ model Channel {
 
 model Post {
   id        String   @id @default(cuid())
-  channelId String   @map("channel_id")
-  authorId  String   @map("author_id")
-  title    String
-  body     String
-  createdAt DateTime @default(now()) @map("created_at")
+  channelId String
+  authorId  String
+  title     String
+  body      String
+  createdAt DateTime @default(now())
 
   channel    Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
   author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -47,11 +47,11 @@ model Post {
 
 model Reply {
   id            String   @id @default(cuid())
-  postId        String   @map("post_id")
-  parentReplyId String?  @map("parent_reply_id")
-  authorId      String   @map("author_id")
+  postId        String
+  parentReplyId String?
+  authorId      String
   body          String
-  createdAt     DateTime @default(now()) @map("created_at")
+  createdAt     DateTime @default(now())
 
   post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   parentReply  Reply?   @relation("ReplyReplies", fields: [parentReplyId], references: [id], onDelete: SetNull)
@@ -61,24 +61,21 @@ model Reply {
 
 model Vote {
   id         String @id @default(cuid())
-  userId     String @map("user_id")
-  targetType String @map("target_type")
-  targetId   String @map("target_id")
+  userId     String
+  targetType String
+  targetId   String
   value      Int
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, targetId])
-  @@map("votes")
 }
 
 model Attachment {
   id         String  @id @default(cuid())
-  targetType String  @map("target_type")
-  targetId   String  @map("target_id")
-  mimeType   String  @map("mime_type")
-  sizeBytes  Int     @map("size_bytes")
+  targetType String
+  targetId   String
+  mimeType   String
+  sizeBytes  Int
   path       String
-
-  @@map("attachments")
 }
