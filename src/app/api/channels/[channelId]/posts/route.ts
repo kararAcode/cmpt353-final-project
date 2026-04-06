@@ -1,8 +1,8 @@
 import { ApiError, handleRouteError } from "@/lib/api";
+import { createAttachments } from "@/lib/attachments";
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Attachment } from "@prisma/client";
-import { mkdir, writeFile } from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -143,13 +143,6 @@ export async function POST(
             throw new ApiError(404, "Channel not found");
         }
 
-        const attachmentDir = process.env.ATTACHMENT_DIR;
-        const attachmentUrlBase = process.env.ATTACHMENT_URL_BASE;
-
-        if (attachments.length > 0 && (!attachmentDir || !attachmentUrlBase)) {
-            throw new ApiError(500, "Attachment storage is not configured");
-        }
-
         const newPost = await prisma.post.create({
             data: {
                 title: title.toString(),
@@ -159,40 +152,19 @@ export async function POST(
             },
         });
 
-        const attachmentRecords = [];
+        const files: File[] = [];
         for (const attachment of attachments) {
             if (!(attachment instanceof File)) {
                 throw new ApiError(400, "Attachments must be files");
             }
-
-            const buffer = Buffer.from(await attachment.arrayBuffer());
-
-            const ext = attachment.name.includes(".")
-                ? attachment.name.split(".").at(-1)
-                : "bin";
-
-            const uuid = crypto.randomUUID();
-
-            await mkdir(attachmentDir as string, {
-                recursive: true,
-            });
-            await writeFile(
-                `${attachmentDir}/${uuid}.${ext}`,
-                buffer,
-            );
-
-            const newAttachment = await prisma.attachment.create({
-                data: {
-                    targetType: "post",
-                    targetId: newPost.id,
-                    mimeType: attachment.type,
-                    sizeBytes: attachment.size,
-                    path: `${attachmentUrlBase}/${uuid}.${ext}`,
-                },
-            });
-
-            attachmentRecords.push(newAttachment);
+            files.push(attachment);
         }
+
+        const attachmentRecords = await createAttachments({
+            files,
+            targetType: "post",
+            targetId: newPost.id,
+        });
 
         return NextResponse.json(
             {
