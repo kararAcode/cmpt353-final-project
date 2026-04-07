@@ -15,6 +15,8 @@ export type AuthUser = {
   role: string;
 } | null;
 
+type VerifiedAuthUser = NonNullable<AuthUser>;
+
 function parseBearerToken(authorizationHeader: string | null): string | null {
   if (!authorizationHeader) {
     return null;
@@ -101,7 +103,7 @@ async function verifyAuthToken(token: string): Promise<JwtPayload> {
   }
 }
 
-async function getUserFromToken(token: string): Promise<AuthUser> {
+async function getUserFromToken(token: string): Promise<VerifiedAuthUser> {
   const payload = await verifyAuthToken(token);
 
   if (typeof payload.sub !== "string" || !payload.sub) {

@@ -140,6 +140,7 @@ export default function ChannelDetailPage() {
                 title: createdPost.title,
                 body: createdPost.body,
                 createdAt: createdPost.createdAt,
+                currentUserVote: null,
                 author: {
                     id: authUser.id,
                     displayName: authUser.displayName,

@@ -20,6 +20,7 @@ type ReplyNode = {
     parentReplyId: string | null;
     body: string;
     createdAt: Date;
+    currentUserVote: number | null;
     author: {
         id: string;
         displayName: string;
@@ -51,8 +52,27 @@ function buildVoteSummaryMap(
             current.downvotes += 1;
         }
 
-        current.score += vote.value;
+        current.score = current.upvotes - current.downvotes;
         voteMap.set(vote.targetId, current);
+    }
+
+    return voteMap;
+}
+
+function buildCurrentUserVoteMap(
+    votes: Array<{ targetId: string; userId: string; value: number }>,
+    currentUserId?: string,
+): Map<string, number> {
+    const voteMap = new Map<string, number>();
+
+    if (!currentUserId) {
+        return voteMap;
+    }
+
+    for (const vote of votes) {
+        if (vote.userId === currentUserId) {
+            voteMap.set(vote.targetId, vote.value);
+        }
     }
 
     return voteMap;
@@ -114,7 +134,7 @@ function buildReplyTree(replies: ReplyNode[]): ReplyNode[] {
     return roots;
 }
 
-export async function getPostDetail(postId: string) {
+export async function getPostDetail(postId: string, currentUserId?: string) {
     const post = await prisma.post.findUnique({
         where: { id: postId },
         include: {
@@ -187,6 +207,7 @@ export async function getPostDetail(postId: string) {
             },
             select: {
                 targetId: true,
+                userId: true,
                 value: true,
             },
         }),
@@ -194,6 +215,7 @@ export async function getPostDetail(postId: string) {
 
     const attachmentMap = buildAttachmentMap(attachments);
     const voteMap = buildVoteSummaryMap(votes);
+    const currentUserVoteMap = buildCurrentUserVoteMap(votes, currentUserId);
     const replyTree = buildReplyTree(
         replies.map((reply) => ({
             id: reply.id,
@@ -201,6 +223,7 @@ export async function getPostDetail(postId: string) {
             parentReplyId: reply.parentReplyId,
             body: reply.body,
             createdAt: reply.createdAt,
+            currentUserVote: currentUserVoteMap.get(reply.id) ?? null,
             author: reply.author,
             attachments: attachmentMap.get(reply.id) ?? [],
             voteSummary: voteMap.get(reply.id) ?? emptyVoteSummary(),
@@ -215,6 +238,7 @@ export async function getPostDetail(postId: string) {
             title: post.title,
             body: post.body,
             createdAt: post.createdAt,
+            currentUserVote: currentUserVoteMap.get(post.id) ?? null,
             author: post.author,
             attachments: attachmentMap.get(post.id) ?? [],
             voteSummary: voteMap.get(post.id) ?? emptyVoteSummary(),

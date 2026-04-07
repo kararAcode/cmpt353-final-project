@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { MessageCircle, ThumbsUp } from "lucide-react";
+import { ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 
 import { AttachmentGallery } from "@/components/channels/attachment-gallery";
 import { ScreenshotPicker } from "@/components/channels/screenshot-picker";
@@ -22,15 +22,74 @@ type ReplyListProps = {
     replyTargetId: string | null;
     replyError: string;
     isSubmittingReply: boolean;
+    votingReplyId: string | null;
     parentAuthorName?: string;
     onReplyClick: (replyId: string) => void;
     onReplySubmit: (replyId: string, body: string, files: File[]) => Promise<boolean>;
     onReplyCancel: () => void;
+    onReplyVote: (replyId: string, nextVote: number) => Promise<void>;
 };
 
 function getInitials(name: string) {
     const parts = name.trim().split(/\s+/).slice(0, 2);
     return parts.map((part) => part[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
+function VoteControls({
+    score,
+    upvotes,
+    downvotes,
+    currentUserVote,
+    isAuthenticated,
+    isSubmitting,
+    onVote,
+}: {
+    score: number;
+    upvotes: number;
+    downvotes: number;
+    currentUserVote: number | null;
+    isAuthenticated: boolean;
+    isSubmitting: boolean;
+    onVote: (value: number) => void;
+}) {
+    function handleVote(value: number) {
+        onVote(currentUserVote === value ? 0 : value);
+    }
+
+    return (
+        <div className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/40 p-1">
+            <button
+                type="button"
+                className={cn(
+                    "inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground",
+                    currentUserVote === 1 && "bg-background text-foreground",
+                )}
+                disabled={!isAuthenticated || isSubmitting}
+                onClick={() => handleVote(1)}
+                aria-label="Upvote reply"
+            >
+                <ChevronUp className="h-4 w-4" />
+            </button>
+            <span className="min-w-10 text-center text-xs font-semibold text-foreground">
+                {score}
+            </span>
+            <button
+                type="button"
+                className={cn(
+                    "inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground",
+                    currentUserVote === -1 && "bg-background text-foreground",
+                )}
+                disabled={!isAuthenticated || isSubmitting}
+                onClick={() => handleVote(-1)}
+                aria-label="Downvote reply"
+            >
+                <ChevronDown className="h-4 w-4" />
+            </button>
+            <span className="pl-1 text-[11px] text-muted-foreground">
+                {upvotes} up • {downvotes} down
+            </span>
+        </div>
+    );
 }
 
 function ReplyAvatar({ name }: { name: string }) {
@@ -42,22 +101,33 @@ function ReplyAvatar({ name }: { name: string }) {
 }
 
 function ReplyActions({
-    score,
+    voteSummary,
+    currentUserVote,
     attachmentsCount,
     isAuthenticated,
+    isSubmittingVote,
     onReplyClick,
+    onVote,
 }: {
-    score: number;
+    voteSummary: ReplySummary["voteSummary"];
+    currentUserVote: number | null;
     attachmentsCount: number;
     isAuthenticated: boolean;
+    isSubmittingVote: boolean;
     onReplyClick: () => void;
+    onVote: (value: number) => void;
 }) {
     return (
         <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-                <ThumbsUp className="h-3.5 w-3.5" />
-                {score}
-            </span>
+            <VoteControls
+                score={voteSummary.score}
+                upvotes={voteSummary.upvotes}
+                downvotes={voteSummary.downvotes}
+                currentUserVote={currentUserVote}
+                isAuthenticated={isAuthenticated}
+                isSubmitting={isSubmittingVote}
+                onVote={onVote}
+            />
             {attachmentsCount > 0 ? <span>{attachmentsCount} attachments</span> : null}
             {isAuthenticated ? (
                 <button
@@ -129,10 +199,12 @@ export function ReplyList({
     replyTargetId,
     replyError,
     isSubmittingReply,
+    votingReplyId,
     parentAuthorName,
     onReplyClick,
     onReplySubmit,
     onReplyCancel,
+    onReplyVote,
 }: ReplyListProps) {
     return (
         <div className={cn("divide-y divide-border/70", parentAuthorName && "mt-4")}>
@@ -157,10 +229,13 @@ export function ReplyList({
                                 {formatChannelDate(reply.createdAt)}
                             </p>
                             <ReplyActions
-                                score={reply.voteSummary.score}
+                                voteSummary={reply.voteSummary}
+                                currentUserVote={reply.currentUserVote}
                                 attachmentsCount={reply.attachments.length}
                                 isAuthenticated={isAuthenticated}
+                                isSubmittingVote={votingReplyId === reply.id}
                                 onReplyClick={() => onReplyClick(reply.id)}
+                                onVote={(value) => onReplyVote(reply.id, value)}
                             />
                             {replyTargetId === reply.id ? (
                                 <ReplyComposer
@@ -178,10 +253,12 @@ export function ReplyList({
                                         replyTargetId={replyTargetId}
                                         replyError={replyError}
                                         isSubmittingReply={isSubmittingReply}
+                                        votingReplyId={votingReplyId}
                                         parentAuthorName={reply.author.displayName}
                                         onReplyClick={onReplyClick}
                                         onReplySubmit={onReplySubmit}
                                         onReplyCancel={onReplyCancel}
+                                        onReplyVote={onReplyVote}
                                     />
                                 </div>
                             ) : null}

@@ -77,7 +77,7 @@ export async function POST(
                 voteSummary.downvotes += 1;
             }
 
-            voteSummary.score += vote.value;
+            voteSummary.score = voteSummary.upvotes - voteSummary.downvotes;
 
             if (vote.userId === user.id) {
                 currentUserVote = vote.value;
