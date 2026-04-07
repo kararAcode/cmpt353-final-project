@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
+import jwt from "jsonwebtoken";
 import { jwtVerify } from "jose";
+import { NextResponse } from "next/server";
 
 import { ApiError } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
@@ -42,6 +44,47 @@ export function getAuthTokenFromRequest(request: Request): string | null {
 type JwtPayload = {
   sub?: unknown;
 };
+
+type AuthTokenPayload = {
+  sub: string;
+  role: string;
+};
+
+export function createAuthToken(payload: AuthTokenPayload): string {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    throw new ApiError(500, "JWT_SECRET is not configured.");
+  }
+
+  return jwt.sign(payload, secret, {
+    expiresIn: "7d",
+  });
+}
+
+export function setAuthCookie(response: NextResponse, token: string) {
+  response.cookies.set(AUTH_COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+
+  return response;
+}
+
+export function clearAuthCookie(response: NextResponse) {
+  response.cookies.set(AUTH_COOKIE_NAME, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+
+  return response;
+}
 
 async function verifyAuthToken(token: string): Promise<JwtPayload> {
   const secret = process.env.JWT_SECRET;

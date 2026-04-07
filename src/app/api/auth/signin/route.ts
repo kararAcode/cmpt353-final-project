@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
-import { AUTH_COOKIE_NAME } from "@/lib/auth";
+import { createAuthToken, setAuthCookie } from "@/lib/auth";
 import { ApiError, handleRouteError, jsonResponse, readJsonBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
@@ -17,12 +16,6 @@ export async function POST(request: NextRequest) {
             throw new ApiError(400, "password must be a non-empty string");
         }
 
-        const secret = process.env.JWT_SECRET;
-
-        if (!secret) {
-            throw new ApiError(500, "JWT_SECRET is not configured.");
-        }
-
         const normalizedEmail = email.trim().toLowerCase();
         const user = await prisma.user.findUnique({
             where: {
@@ -34,16 +27,10 @@ export async function POST(request: NextRequest) {
             throw new ApiError(401, "Invalid email or password");
         }
 
-        const token = jwt.sign(
-            {
-                sub: user.id,
-                role: user.role,
-            },
-            secret,
-            {
-                expiresIn: "7d",
-            },
-        );
+        const token = createAuthToken({
+            sub: user.id,
+            role: user.role,
+        });
 
         const response = jsonResponse({
             user: {
@@ -54,15 +41,7 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        response.cookies.set(AUTH_COOKIE_NAME, token, {
-            httpOnly: true,
-            sameSite: "lax",
-            secure: process.env.NODE_ENV === "production",
-            path: "/",
-            maxAge: 60 * 60 * 24 * 7,
-        });
-
-        return response;
+        return setAuthCookie(response, token);
     } catch (error) {
         return handleRouteError(error);
     }

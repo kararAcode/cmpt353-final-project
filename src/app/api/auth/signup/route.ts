@@ -1,4 +1,5 @@
 import { ApiError, handleRouteError, readJsonBody } from "@/lib/api";
+import { createAuthToken, setAuthCookie } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
@@ -38,7 +39,14 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        return NextResponse.json({data: user});
+        const token = createAuthToken({
+            sub: user.id,
+            role: user.role,
+        });
+
+        const response = NextResponse.json({ data: user });
+
+        return setAuthCookie(response, token);
     } catch (error) {
         if (
             typeof error === "object" &&
