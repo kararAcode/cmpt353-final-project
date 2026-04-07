@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Hash, LogOut, Plus, Shield, Trash2 } from "lucide-react";
+import { ChevronDown, Hash, LogOut, Plus, Search, Shield, Trash2 } from "lucide-react";
 
 import { useAuth } from "@/app/auth-provider";
 import { CreateChannelModal } from "@/components/channels/create-channel-modal";
@@ -240,6 +240,13 @@ export default function ChannelsPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         ) : null}
+                        <Link
+                            href="/search"
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                            <Search className="h-4 w-4" />
+                            Search
+                        </Link>
                         <ThemeToggle />
                     </div>
                 </div>

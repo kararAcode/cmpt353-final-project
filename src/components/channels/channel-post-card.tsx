@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 
 import { useAuth } from "@/app/auth-provider";
@@ -34,12 +34,16 @@ import { cn } from "@/lib/utils";
 
 type ChannelPostCardProps = {
     post: PostSummary;
+    isFocused?: boolean;
+    focusReplyId?: string | null;
     onPostReplyCountChange: (postId: string, topLevelReplyCount: number) => void;
     onPostDeleted: (postId: string) => void;
 };
 
 export function ChannelPostCard({
     post,
+    isFocused = false,
+    focusReplyId = null,
     onPostReplyCountChange,
     onPostDeleted,
 }: ChannelPostCardProps) {
@@ -108,7 +112,7 @@ export function ChannelPostCard({
         });
     }
 
-    async function loadDetail(force = false) {
+    const loadDetail = useCallback(async (force = false) => {
         if (detail && !force) {
             return detail;
         }
@@ -138,7 +142,38 @@ export function ChannelPostCard({
         } finally {
             setIsLoadingReplies(false);
         }
-    }
+    }, [detail, onPostReplyCountChange, post.id]);
+
+    useEffect(() => {
+        if (!isFocused) {
+            return;
+        }
+
+        async function expandFocusedPost() {
+            try {
+                await loadDetail();
+                setIsExpanded(true);
+            } catch {}
+        }
+
+        void expandFocusedPost();
+    }, [isFocused, loadDetail]);
+
+    useEffect(() => {
+        if (!isFocused) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            const targetId = focusReplyId ? `reply-${focusReplyId}` : `post-${post.id}`;
+            const targetElement =
+                document.getElementById(targetId) ?? document.getElementById(`post-${post.id}`);
+
+            targetElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 150);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [detail, focusReplyId, isFocused, isExpanded, post.id]);
 
     async function handleToggleReplies() {
         if (isExpanded) {
@@ -376,7 +411,13 @@ export function ChannelPostCard({
     }
 
     return (
-        <Card className="transition-shadow hover:shadow-md">
+        <Card
+            id={`post-${post.id}`}
+            className={cn(
+                "scroll-mt-24 transition-shadow hover:shadow-md",
+                isFocused && "ring-2 ring-accent/50",
+            )}
+        >
             <CardHeader className="space-y-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
@@ -505,6 +546,7 @@ export function ChannelPostCard({
                                 isSubmittingReply={isSubmittingReply}
                                 votingReplyId={votingReplyId}
                                 deletingReplyId={deletingReplyId}
+                                focusedReplyId={focusReplyId}
                                 onReplyClick={(replyId) => {
                                     setReplyTargetId(replyId);
                                     setReplyError("");
