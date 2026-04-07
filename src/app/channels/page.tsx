@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Hash, LogOut, Plus } from "lucide-react";
 
+import { useAuth } from "@/app/auth-provider";
 import { CreateChannelModal } from "@/components/channels/create-channel-modal";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -31,13 +32,6 @@ type Channel = {
     postCount: number;
 };
 
-type AuthUser = {
-    id: string;
-    email: string;
-    displayName: string;
-    role: string;
-};
-
 const THUMBNAILS = [
     { emoji: "💬", bgClass: "bg-primary/15 text-primary" },
     { emoji: "🧠", bgClass: "bg-accent/15 text-accent" },
@@ -54,45 +48,14 @@ function pickThumbnail(seed: string) {
 
 export default function ChannelsPage() {
     const router = useRouter();
+    const authUser = useAuth();
     const [channels, setChannels] = useState<Channel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
-    const [authToken, setAuthToken] = useState<string | null>(null);
-    const [authUser, setAuthUser] = useState<AuthUser | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [channelName, setChannelName] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
-
-    useEffect(() => {
-        setAuthToken(window.localStorage.getItem("authToken"));
-
-        const storedAuthUser = window.localStorage.getItem("authUser");
-
-        if (!storedAuthUser) {
-            return;
-        }
-
-        try {
-            const parsedAuthUser = JSON.parse(storedAuthUser) as Partial<AuthUser>;
-
-            if (
-                typeof parsedAuthUser.id === "string" &&
-                typeof parsedAuthUser.email === "string" &&
-                typeof parsedAuthUser.displayName === "string" &&
-                typeof parsedAuthUser.role === "string"
-            ) {
-                setAuthUser({
-                    id: parsedAuthUser.id,
-                    email: parsedAuthUser.email,
-                    displayName: parsedAuthUser.displayName,
-                    role: parsedAuthUser.role,
-                });
-            }
-        } catch {
-            window.localStorage.removeItem("authUser");
-        }
-    }, []);
 
     useEffect(() => {
         async function loadChannels() {
@@ -118,7 +81,7 @@ export default function ChannelsPage() {
         void loadChannels();
     }, []);
 
-    const hasAuth = useMemo(() => Boolean(authToken), [authToken]);
+    const hasAuth = Boolean(authUser);
     const authLabel = authUser?.displayName || "Account";
 
     async function handleCreateChannel(event: React.FormEvent<HTMLFormElement>) {
@@ -131,7 +94,7 @@ export default function ChannelsPage() {
             return;
         }
 
-        if (!authToken) {
+        if (!authUser) {
             setSubmitError("You must be signed in to create a channel.");
             return;
         }
@@ -144,7 +107,6 @@ export default function ChannelsPage() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${authToken}`,
                 },
                 body: JSON.stringify({ name: trimmedName }),
             });
@@ -184,13 +146,14 @@ export default function ChannelsPage() {
         }
     }
 
-    function handleLogout() {
-        window.localStorage.removeItem("authToken");
-        window.localStorage.removeItem("authUser");
-        setAuthToken(null);
-        setAuthUser(null);
+    async function handleLogout() {
         setIsCreateModalOpen(false);
         setSubmitError("");
+
+        await fetch("/api/auth/logout", {
+            method: "POST",
+        });
+
         router.refresh();
     }
 
