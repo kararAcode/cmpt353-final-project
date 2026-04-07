@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Hash, LogOut, Plus } from "lucide-react";
+import { ChevronDown, Hash, LogOut, Plus, Shield, Trash2 } from "lucide-react";
 
 import { useAuth } from "@/app/auth-provider";
 import { CreateChannelModal } from "@/components/channels/create-channel-modal";
@@ -16,6 +16,14 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -43,6 +51,8 @@ export default function ChannelsPage() {
     const [channelName, setChannelName] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [deletingChannelId, setDeletingChannelId] = useState<string | null>(null);
+    const [channelToDelete, setChannelToDelete] = useState<Channel | null>(null);
 
     useEffect(() => {
         async function loadChannels() {
@@ -143,6 +153,39 @@ export default function ChannelsPage() {
         router.refresh();
     }
 
+    async function handleDeleteChannel() {
+        if (authUser?.role !== "admin" || !channelToDelete) {
+            return;
+        }
+
+        try {
+            setDeletingChannelId(channelToDelete.id);
+            setError("");
+
+            const response = await fetch(`/api/channels/${channelToDelete.id}`, {
+                method: "DELETE",
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result?.error?.message || "Failed to delete channel.");
+            }
+
+            setChannels((current) =>
+                current.filter((entry) => entry.id !== channelToDelete.id),
+            );
+            setChannelToDelete(null);
+        } catch (deleteError) {
+            setError(
+                deleteError instanceof Error
+                    ? deleteError.message
+                    : "Failed to delete channel.",
+            );
+        } finally {
+            setDeletingChannelId(null);
+        }
+    }
+
     return (
         <main className="min-h-screen bg-background">
             <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
@@ -181,6 +224,15 @@ export default function ChannelsPage() {
                                         </DropdownMenuLabel>
                                     ) : null}
                                     <DropdownMenuSeparator />
+                                    {authUser?.role === "admin" ? (
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/admin/users">
+                                                <Shield className="h-4 w-4" />
+                                                Manage users
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    ) : null}
+                                    {authUser?.role === "admin" ? <DropdownMenuSeparator /> : null}
                                     <DropdownMenuItem onClick={handleLogout}>
                                         <LogOut className="h-4 w-4" />
                                         Log out
@@ -246,29 +298,49 @@ export default function ChannelsPage() {
                             const thumbnail = pickChannelThumbnail(channel.id + channel.name);
 
                             return (
-                                <Link key={channel.id} href={`/channels/${channel.id}`} className="block">
-                                    <Card className="h-full transition-shadow hover:shadow-md">
-                                        <CardHeader className="space-y-4">
+                                <Card key={channel.id} className="h-full transition-shadow hover:shadow-md">
+                                    <CardHeader className="space-y-4">
+                                        <div className="flex items-start justify-between gap-3">
                                             <div
                                                 className={`flex h-12 w-12 items-center justify-center rounded-xl text-xl ${thumbnail.bgClass}`}
                                             >
                                                 <span aria-hidden="true">{thumbnail.emoji}</span>
                                             </div>
-                                            <div className="space-y-1">
-                                                <CardTitle className="capitalize">{channel.name}</CardTitle>
-                                                <CardDescription>
-                                                    {channel.postCount}{" "}
-                                                    {channel.postCount === 1 ? "post" : "posts"}
-                                                </CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p className="text-sm text-muted-foreground">
-                                                {channel.description || "No description yet."}
-                                            </p>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
+                                            {authUser?.role === "admin" ? (
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    disabled={deletingChannelId === channel.id}
+                                                    onClick={() => {
+                                                        setChannelToDelete(channel);
+                                                        setError("");
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                    {deletingChannelId === channel.id
+                                                        ? "Deleting..."
+                                                        : "Delete"}
+                                                </Button>
+                                            ) : null}
+                                        </div>
+                                        <div className="space-y-1">
+                                            <CardTitle className="capitalize">
+                                                <Link href={`/channels/${channel.id}`} className="hover:underline">
+                                                    {channel.name}
+                                                </Link>
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {channel.postCount}{" "}
+                                                {channel.postCount === 1 ? "post" : "posts"}
+                                            </CardDescription>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">
+                                            {channel.description || "No description yet."}
+                                        </p>
+                                    </CardContent>
+                                </Card>
                             );
                         })}
                     </div>
@@ -287,6 +359,40 @@ export default function ChannelsPage() {
                 }}
                 onSubmit={handleCreateChannel}
             />
+
+            <Dialog
+                open={Boolean(channelToDelete)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setChannelToDelete(null);
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirm channel deletion</DialogTitle>
+                        <DialogDescription>
+                            {channelToDelete
+                                ? `Delete the channel "${channelToDelete.name}" and all posts and replies inside it? This cannot be undone.`
+                                : "Confirm this deletion."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setChannelToDelete(null)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={deletingChannelId === channelToDelete?.id}
+                            onClick={() => void handleDeleteChannel()}
+                        >
+                            {deletingChannelId === channelToDelete?.id
+                                ? "Deleting..."
+                                : "Confirm delete"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </main>
     );
 }

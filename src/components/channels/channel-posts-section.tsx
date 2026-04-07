@@ -10,11 +10,13 @@ import { Card, CardContent } from "@/components/ui/card";
 type ChannelPostsSectionProps = {
     posts: PostSummary[];
     onPostReplyCountChange: (postId: string, topLevelReplyCount: number) => void;
+    onPostDeleted: (postId: string) => void;
 };
 
 export function ChannelPostsSection({
     posts,
     onPostReplyCountChange,
+    onPostDeleted,
 }: ChannelPostsSectionProps) {
     const { isAuthenticated } = useAuth();
 
@@ -46,6 +48,7 @@ export function ChannelPostsSection({
                             key={post.id}
                             post={post}
                             onPostReplyCountChange={onPostReplyCountChange}
+                            onPostDeleted={onPostDeleted}
                         />
                     ))}
                 </div>

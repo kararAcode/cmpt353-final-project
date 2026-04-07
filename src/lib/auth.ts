@@ -151,3 +151,13 @@ export async function requireAuthenticatedUser(request: Request) {
 
   return getUserFromToken(token);
 }
+
+export async function requireAdminUser(request: Request) {
+  const user = await requireAuthenticatedUser(request);
+
+  if (user.role !== "admin") {
+    throw new ApiError(403, "Admin access required.");
+  }
+
+  return user;
+}
