@@ -19,6 +19,8 @@ model User {
   posts      Post[]
   replies    Reply[]
   votes      Vote[]
+
+  @@index([displayName])
 }
 
 model Channel {
@@ -30,6 +32,8 @@ model Channel {
 
   createdBy User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   posts     Post[]
+
+  @@index([name])
 }
 
 model Post {
@@ -43,6 +47,10 @@ model Post {
   channel    Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
   author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   replies    Reply[]
+
+  @@index([channelId, createdAt, id])
+  @@index([authorId, createdAt, id])
+  @@index([createdAt, id])
 }
 
 model Reply {
@@ -57,6 +65,10 @@ model Reply {
   parentReply  Reply?   @relation("ReplyReplies", fields: [parentReplyId], references: [id], onDelete: SetNull)
   childReplies Reply[]  @relation("ReplyReplies")
   author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt, id])
+  @@index([authorId, createdAt, id])
+  @@index([createdAt, id])
 }
 
 model Vote {
