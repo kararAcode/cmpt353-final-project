@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ChevronDown, LogOut } from "lucide-react";
+import { ArrowLeft, ChevronDown, LogOut, Shield } from "lucide-react";
 
 import { useAuth } from "@/app/auth-provider";
 import {
@@ -208,6 +208,15 @@ export default function ChannelDetailPage() {
                                         </DropdownMenuLabel>
                                     ) : null}
                                     <DropdownMenuSeparator />
+                                    {authUser?.role === "admin" ? (
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/admin/users">
+                                                <Shield className="h-4 w-4" />
+                                                Manage users
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    ) : null}
+                                    {authUser?.role === "admin" ? <DropdownMenuSeparator /> : null}
                                     <DropdownMenuItem onClick={handleLogout}>
                                         <LogOut className="h-4 w-4" />
                                         Log out
@@ -280,6 +289,19 @@ export default function ChannelDetailPage() {
                                             ? { ...post, topLevelReplyCount }
                                             : post,
                                     ),
+                                );
+                            }}
+                            onPostDeleted={(postId) => {
+                                setPosts((current) =>
+                                    current.filter((post) => post.id !== postId),
+                                );
+                                setChannel((current) =>
+                                    current
+                                        ? {
+                                              ...current,
+                                              postCount: Math.max(current.postCount - 1, 0),
+                                          }
+                                        : current,
                                 );
                             }}
                         />

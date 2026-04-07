@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, MessageCircle, Trash2 } from "lucide-react";
 
 import { AttachmentGallery } from "@/components/channels/attachment-gallery";
 import { ScreenshotPicker } from "@/components/channels/screenshot-picker";
@@ -19,15 +19,19 @@ type ReplyComposerProps = {
 type ReplyListProps = {
     replies: ReplySummary[];
     isAuthenticated: boolean;
+    isAdmin: boolean;
     replyTargetId: string | null;
     replyError: string;
     isSubmittingReply: boolean;
     votingReplyId: string | null;
+    deletingReplyId: string | null;
     parentAuthorName?: string;
     onReplyClick: (replyId: string) => void;
     onReplySubmit: (replyId: string, body: string, files: File[]) => Promise<boolean>;
     onReplyCancel: () => void;
     onReplyVote: (replyId: string, nextVote: number) => Promise<void>;
+    onReplyDelete: (replyId: string) => Promise<void>;
+    onReplyDeleteRequest: (replyId: string) => void;
 };
 
 function getInitials(name: string) {
@@ -105,17 +109,23 @@ function ReplyActions({
     currentUserVote,
     attachmentsCount,
     isAuthenticated,
+    isAdmin,
     isSubmittingVote,
+    isDeleting,
     onReplyClick,
     onVote,
+    onDelete,
 }: {
     voteSummary: ReplySummary["voteSummary"];
     currentUserVote: number | null;
     attachmentsCount: number;
     isAuthenticated: boolean;
+    isAdmin: boolean;
     isSubmittingVote: boolean;
+    isDeleting: boolean;
     onReplyClick: () => void;
     onVote: (value: number) => void;
+    onDelete: () => void;
 }) {
     return (
         <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
@@ -137,6 +147,17 @@ function ReplyActions({
                 >
                     <MessageCircle className="h-3.5 w-3.5" />
                     Reply
+                </button>
+            ) : null}
+            {isAdmin ? (
+                <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 font-medium text-destructive transition-colors hover:text-destructive/80"
+                    disabled={isDeleting}
+                    onClick={onDelete}
+                >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {isDeleting ? "Deleting..." : "Delete"}
                 </button>
             ) : null}
         </div>
@@ -196,15 +217,19 @@ export function ReplyComposer({
 export function ReplyList({
     replies,
     isAuthenticated,
+    isAdmin,
     replyTargetId,
     replyError,
     isSubmittingReply,
     votingReplyId,
+    deletingReplyId,
     parentAuthorName,
     onReplyClick,
     onReplySubmit,
     onReplyCancel,
     onReplyVote,
+    onReplyDelete,
+    onReplyDeleteRequest,
 }: ReplyListProps) {
     return (
         <div className={cn("divide-y divide-border/70", parentAuthorName && "mt-4")}>
@@ -233,9 +258,12 @@ export function ReplyList({
                                 currentUserVote={reply.currentUserVote}
                                 attachmentsCount={reply.attachments.length}
                                 isAuthenticated={isAuthenticated}
+                                isAdmin={isAdmin}
                                 isSubmittingVote={votingReplyId === reply.id}
+                                isDeleting={deletingReplyId === reply.id}
                                 onReplyClick={() => onReplyClick(reply.id)}
                                 onVote={(value) => onReplyVote(reply.id, value)}
+                                onDelete={() => onReplyDeleteRequest(reply.id)}
                             />
                             {replyTargetId === reply.id ? (
                                 <ReplyComposer
@@ -250,15 +278,19 @@ export function ReplyList({
                                     <ReplyList
                                         replies={reply.replies}
                                         isAuthenticated={isAuthenticated}
+                                        isAdmin={isAdmin}
                                         replyTargetId={replyTargetId}
                                         replyError={replyError}
                                         isSubmittingReply={isSubmittingReply}
                                         votingReplyId={votingReplyId}
+                                        deletingReplyId={deletingReplyId}
                                         parentAuthorName={reply.author.displayName}
                                         onReplyClick={onReplyClick}
                                         onReplySubmit={onReplySubmit}
                                         onReplyCancel={onReplyCancel}
                                         onReplyVote={onReplyVote}
+                                        onReplyDelete={onReplyDelete}
+                                        onReplyDeleteRequest={onReplyDeleteRequest}
                                     />
                                 </div>
                             ) : null}

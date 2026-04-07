@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 
 import { useAuth } from "@/app/auth-provider";
 import { AttachmentGallery } from "@/components/channels/attachment-gallery";
@@ -22,18 +22,28 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 type ChannelPostCardProps = {
     post: PostSummary;
     onPostReplyCountChange: (postId: string, topLevelReplyCount: number) => void;
+    onPostDeleted: (postId: string) => void;
 };
 
 export function ChannelPostCard({
     post,
     onPostReplyCountChange,
+    onPostDeleted,
 }: ChannelPostCardProps) {
-    const { isAuthenticated } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const [postState, setPostState] = useState(post);
     const [detail, setDetail] = useState<PostDetail | null>(null);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -44,6 +54,12 @@ export function ChannelPostCard({
     const [isSubmittingReply, setIsSubmittingReply] = useState(false);
     const [isSubmittingPostVote, setIsSubmittingPostVote] = useState(false);
     const [votingReplyId, setVotingReplyId] = useState<string | null>(null);
+    const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
+    const [isDeletingPost, setIsDeletingPost] = useState(false);
+    const [isPostDeleteDialogOpen, setIsPostDeleteDialogOpen] = useState(false);
+    const [replyToDelete, setReplyToDelete] = useState<PostDetail["replies"][number] | null>(null);
+
+    const isAdmin = user?.role === "admin";
 
     useEffect(() => {
         setPostState(post);
@@ -259,6 +275,106 @@ export function ChannelPostCard({
         }
     }
 
+    function removeReplyBranch(
+        replies: PostDetail["replies"],
+        replyId: string,
+    ): PostDetail["replies"] {
+        return replies
+            .filter((reply) => reply.id !== replyId)
+            .map((reply) => ({
+                ...reply,
+                replies: removeReplyBranch(reply.replies, replyId),
+            }));
+    }
+
+    function findReplyById(
+        replies: PostDetail["replies"],
+        replyId: string,
+    ): PostDetail["replies"][number] | null {
+        for (const reply of replies) {
+            if (reply.id === replyId) {
+                return reply;
+            }
+
+            const nestedMatch = findReplyById(reply.replies, replyId);
+            if (nestedMatch) {
+                return nestedMatch;
+            }
+        }
+
+        return null;
+    }
+
+    async function handleDeletePost() {
+        if (!isAdmin) {
+            return;
+        }
+
+        try {
+            setIsDeletingPost(true);
+            setDetailError("");
+
+            const response = await fetch(`/api/posts/${post.id}`, {
+                method: "DELETE",
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result?.error?.message || "Failed to delete post.");
+            }
+
+            setIsPostDeleteDialogOpen(false);
+            onPostDeleted(post.id);
+        } catch (error) {
+            setDetailError(error instanceof Error ? error.message : "Failed to delete post.");
+        } finally {
+            setIsDeletingPost(false);
+        }
+    }
+
+    async function handleDeleteReply(replyId: string) {
+        if (!isAdmin) {
+            return;
+        }
+
+        try {
+            setDeletingReplyId(replyId);
+            setDetailError("");
+
+            const response = await fetch(`/api/replies/${replyId}`, {
+                method: "DELETE",
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result?.error?.message || "Failed to delete reply.");
+            }
+
+            setDetail((current) =>
+                current
+                    ? {
+                          ...current,
+                          replies: removeReplyBranch(current.replies, replyId),
+                      }
+                    : current,
+            );
+            setPostState((current) => ({
+                ...current,
+                topLevelReplyCount:
+                    replyId === post.id
+                        ? current.topLevelReplyCount
+                        : Math.max(current.topLevelReplyCount - 1, 0),
+            }));
+            setReplyTargetId((current) => (current === replyId ? null : current));
+            setReplyToDelete(null);
+            await loadDetail(true);
+        } catch (error) {
+            setDetailError(error instanceof Error ? error.message : "Failed to delete reply.");
+        } finally {
+            setDeletingReplyId(null);
+        }
+    }
+
     return (
         <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="space-y-3">
@@ -347,6 +463,20 @@ export function ChannelPostCard({
                             Reply
                         </Button>
                     ) : null}
+                    {isAdmin ? (
+                        <Button
+                            size="sm"
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={isDeletingPost}
+                            onClick={() => {
+                                setIsPostDeleteDialogOpen(true);
+                                setDetailError("");
+                            }}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            {isDeletingPost ? "Deleting..." : "Delete post"}
+                        </Button>
+                    ) : null}
                 </div>
                 {isExpanded ? (
                     <div className="space-y-4 rounded-lg border border-border/70 bg-background p-4 sm:p-5">
@@ -369,10 +499,12 @@ export function ChannelPostCard({
                             <ReplyList
                                 replies={detail.replies}
                                 isAuthenticated={isAuthenticated}
+                                isAdmin={isAdmin}
                                 replyTargetId={replyTargetId}
                                 replyError={replyError}
                                 isSubmittingReply={isSubmittingReply}
                                 votingReplyId={votingReplyId}
+                                deletingReplyId={deletingReplyId}
                                 onReplyClick={(replyId) => {
                                     setReplyTargetId(replyId);
                                     setReplyError("");
@@ -383,6 +515,14 @@ export function ChannelPostCard({
                                     setReplyError("");
                                 }}
                                 onReplyVote={handleReplyVote}
+                                onReplyDelete={handleDeleteReply}
+                                onReplyDeleteRequest={(replyId) => {
+                                    const selectedReply = detail
+                                        ? findReplyById(detail.replies, replyId)
+                                        : null;
+                                    setReplyToDelete(selectedReply);
+                                    setDetailError("");
+                                }}
                             />
                         ) : (
                             <p className="text-sm text-muted-foreground">No replies yet.</p>
@@ -390,6 +530,68 @@ export function ChannelPostCard({
                     </div>
                 ) : null}
             </CardContent>
+
+            <Dialog open={isPostDeleteDialogOpen} onOpenChange={setIsPostDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirm post deletion</DialogTitle>
+                        <DialogDescription>
+                            Delete the post &quot;{postState.title}&quot; and all replies under it?
+                            This cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsPostDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={isDeletingPost}
+                            onClick={() => void handleDeletePost()}
+                        >
+                            {isDeletingPost ? "Deleting..." : "Confirm delete"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(replyToDelete)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setReplyToDelete(null);
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirm reply deletion</DialogTitle>
+                        <DialogDescription>
+                            {replyToDelete
+                                ? `Delete this reply from ${replyToDelete.author.displayName} and every nested reply under it? This cannot be undone.`
+                                : "Confirm this deletion."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setReplyToDelete(null)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={deletingReplyId === replyToDelete?.id}
+                            onClick={() => {
+                                if (replyToDelete) {
+                                    void handleDeleteReply(replyToDelete.id);
+                                }
+                            }}
+                        >
+                            {deletingReplyId === replyToDelete?.id
+                                ? "Deleting..."
+                                : "Confirm delete"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 }
