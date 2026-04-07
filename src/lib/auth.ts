@@ -1,7 +1,17 @@
+import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 
 import { ApiError } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
+
+export const AUTH_COOKIE_NAME = "auth_token";
+
+export type AuthUser = {
+  id: string;
+  email: string;
+  displayName: string;
+  role: string;
+} | null;
 
 function parseBearerToken(authorizationHeader: string | null): string | null {
   if (!authorizationHeader) {
@@ -21,45 +31,45 @@ export function getBearerToken(request: Request): string | null {
   return parseBearerToken(request.headers.get("authorization"));
 }
 
-export function requireBearerToken(request: Request): string {
-  const token = getBearerToken(request);
-
-  if (!token) {
-    throw new ApiError(401, "Missing or invalid Bearer token.");
-  }
-
-  return token;
+export function getAuthTokenFromRequest(request: Request): string | null {
+  return getBearerToken(request) ?? request.headers.get("cookie")
+    ?.split(";")
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith(`${AUTH_COOKIE_NAME}=`))
+    ?.slice(`${AUTH_COOKIE_NAME}=`.length) ?? null;
 }
 
 type JwtPayload = {
   sub?: unknown;
 };
 
-export async function requireAuthenticatedUser(request: Request) {
-  const token = requireBearerToken(request);
+async function verifyAuthToken(token: string): Promise<JwtPayload> {
   const secret = process.env.JWT_SECRET;
 
   if (!secret) {
     throw new ApiError(500, "JWT_SECRET is not configured.");
   }
 
-  let payload: JwtPayload;
-
   try {
     const verified = await jwtVerify(token, new TextEncoder().encode(secret));
-    payload = verified.payload as JwtPayload;
+    return verified.payload as JwtPayload;
   } catch {
-    throw new ApiError(401, "Invalid Bearer token.");
+    throw new ApiError(401, "Invalid authentication token.");
   }
+}
+
+async function getUserFromToken(token: string): Promise<AuthUser> {
+  const payload = await verifyAuthToken(token);
 
   if (typeof payload.sub !== "string" || !payload.sub) {
-    throw new ApiError(401, "Bearer token is missing a valid sub claim.");
+    throw new ApiError(401, "Authentication token is missing a valid sub claim.");
   }
 
   const user = await prisma.user.findUnique({
     where: { id: payload.sub },
     select: {
       id: true,
+      email: true,
       displayName: true,
       role: true,
     },
@@ -70,4 +80,29 @@ export async function requireAuthenticatedUser(request: Request) {
   }
 
   return user;
+}
+
+export async function getCurrentUser(): Promise<AuthUser> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    return await getUserFromToken(token);
+  } catch {
+    return null;
+  }
+}
+
+export async function requireAuthenticatedUser(request: Request) {
+  const token = getAuthTokenFromRequest(request);
+
+  if (!token) {
+    throw new ApiError(401, "Missing authentication token.");
+  }
+
+  return getUserFromToken(token);
 }
