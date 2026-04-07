@@ -9,12 +9,16 @@ import { Card, CardContent } from "@/components/ui/card";
 
 type ChannelPostsSectionProps = {
     posts: PostSummary[];
+    focusedPostId?: string | null;
+    focusedReplyId?: string | null;
     onPostReplyCountChange: (postId: string, topLevelReplyCount: number) => void;
     onPostDeleted: (postId: string) => void;
 };
 
 export function ChannelPostsSection({
     posts,
+    focusedPostId = null,
+    focusedReplyId = null,
     onPostReplyCountChange,
     onPostDeleted,
 }: ChannelPostsSectionProps) {
@@ -47,6 +51,8 @@ export function ChannelPostsSection({
                         <ChannelPostCard
                             key={post.id}
                             post={post}
+                            isFocused={focusedPostId === post.id}
+                            focusReplyId={focusedPostId === post.id ? focusedReplyId : null}
                             onPostReplyCountChange={onPostReplyCountChange}
                             onPostDeleted={onPostDeleted}
                         />

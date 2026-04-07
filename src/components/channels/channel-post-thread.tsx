@@ -26,6 +26,7 @@ type ReplyListProps = {
     votingReplyId: string | null;
     deletingReplyId: string | null;
     parentAuthorName?: string;
+    focusedReplyId?: string | null;
     onReplyClick: (replyId: string) => void;
     onReplySubmit: (replyId: string, body: string, files: File[]) => Promise<boolean>;
     onReplyCancel: () => void;
@@ -224,6 +225,7 @@ export function ReplyList({
     votingReplyId,
     deletingReplyId,
     parentAuthorName,
+    focusedReplyId,
     onReplyClick,
     onReplySubmit,
     onReplyCancel,
@@ -234,7 +236,14 @@ export function ReplyList({
     return (
         <div className={cn("divide-y divide-border/70", parentAuthorName && "mt-4")}>
             {replies.map((reply) => (
-                <div key={reply.id} className="pt-4 first:pt-0">
+                <div
+                    key={reply.id}
+                    id={`reply-${reply.id}`}
+                    className={cn(
+                        "scroll-mt-24 rounded-lg pt-4 first:pt-0",
+                        focusedReplyId === reply.id && "bg-accent/10 px-3 py-3",
+                    )}
+                >
                     <div className="flex gap-3">
                         <ReplyAvatar name={reply.author.displayName} />
                         <div className="min-w-0 flex-1 space-y-2">
@@ -285,6 +294,7 @@ export function ReplyList({
                                         votingReplyId={votingReplyId}
                                         deletingReplyId={deletingReplyId}
                                         parentAuthorName={reply.author.displayName}
+                                        focusedReplyId={focusedReplyId}
                                         onReplyClick={onReplyClick}
                                         onReplySubmit={onReplySubmit}
                                         onReplyCancel={onReplyCancel}
