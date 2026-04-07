@@ -3,12 +3,14 @@
 import { FormEvent, useState } from "react";
 import { MessageCircle, ThumbsUp } from "lucide-react";
 
+import { AttachmentGallery } from "@/components/channels/attachment-gallery";
+import { ScreenshotPicker } from "@/components/channels/screenshot-picker";
 import { ReplySummary, formatChannelDate } from "@/components/channels/channel-detail-types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type ReplyComposerProps = {
-    onSubmit: (body: string) => Promise<boolean>;
+    onSubmit: (body: string, files: File[]) => Promise<boolean>;
     onCancel: () => void;
     isSubmitting: boolean;
     error: string;
@@ -22,7 +24,7 @@ type ReplyListProps = {
     isSubmittingReply: boolean;
     parentAuthorName?: string;
     onReplyClick: (replyId: string) => void;
-    onReplySubmit: (replyId: string, body: string) => Promise<boolean>;
+    onReplySubmit: (replyId: string, body: string, files: File[]) => Promise<boolean>;
     onReplyCancel: () => void;
 };
 
@@ -78,6 +80,7 @@ export function ReplyComposer({
     error,
 }: ReplyComposerProps) {
     const [body, setBody] = useState("");
+    const [files, setFiles] = useState<File[]>([]);
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -87,10 +90,13 @@ export function ReplyComposer({
             return;
         }
 
-        const didSubmit = await onSubmit(trimmedBody);
+        const didSubmit = await onSubmit(trimmedBody, files);
 
         if (didSubmit) {
             setBody("");
+            setFiles([]);
+            const form = event.currentTarget;
+            form.reset();
         }
     }
 
@@ -103,6 +109,7 @@ export function ReplyComposer({
                 rows={3}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
             />
+            <ScreenshotPicker files={files} onFilesChange={setFiles} />
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <div className="flex items-center gap-2">
                 <Button type="submit" size="sm" disabled={isSubmitting || !body.trim()}>
@@ -145,6 +152,7 @@ export function ReplyList({
                                 ) : null}
                             </div>
                             <p className="text-sm leading-6 text-foreground">{reply.body}</p>
+                            <AttachmentGallery attachments={reply.attachments} />
                             <p className="text-xs text-muted-foreground">
                                 {formatChannelDate(reply.createdAt)}
                             </p>
@@ -159,7 +167,7 @@ export function ReplyList({
                                     error={replyError}
                                     isSubmitting={isSubmittingReply}
                                     onCancel={onReplyCancel}
-                                    onSubmit={(body) => onReplySubmit(reply.id, body)}
+                                    onSubmit={(body, files) => onReplySubmit(reply.id, body, files)}
                                 />
                             ) : null}
                             {reply.replies.length > 0 ? (

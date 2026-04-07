@@ -1,3 +1,10 @@
+export type AttachmentSummary = {
+    id: string;
+    path: string;
+    mimeType: string;
+    sizeBytes: number;
+};
+
 export type ChannelDetail = {
     id: string;
     name: string;
@@ -19,9 +26,7 @@ export type PostSummary = {
         id: string;
         displayName: string;
     };
-    attachments: Array<{
-        id: string;
-    }>;
+    attachments: AttachmentSummary[];
     topLevelReplyCount: number;
     voteSummary: {
         upvotes: number;
@@ -40,9 +45,7 @@ export type ReplySummary = {
         id: string;
         displayName: string;
     };
-    attachments: Array<{
-        id: string;
-    }>;
+    attachments: AttachmentSummary[];
     voteSummary: {
         upvotes: number;
         downvotes: number;

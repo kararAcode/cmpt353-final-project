@@ -19,6 +19,8 @@ services:
     build: .
     ports:
       - "3000:3000"
+    volumes:
+      - ${HOST_ATTACHMENT_DIR}:${ATTACHMENT_DIR}
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/app?schema=public
     depends_on:

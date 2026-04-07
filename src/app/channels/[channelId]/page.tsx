@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronDown, LogOut } from "lucide-react";
 
 import { useAuth } from "@/app/auth-provider";
 import {
+    AttachmentSummary,
     ChannelDetail,
     PostSummary,
 } from "@/components/channels/channel-detail-types";
@@ -14,7 +15,6 @@ import { ChannelHeroCard } from "@/components/channels/channel-hero-card";
 import { ChannelPostsSection } from "@/components/channels/channel-posts-section";
 import { CreatePostCard } from "@/components/channels/create-post-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
     DropdownMenu,
@@ -34,6 +34,7 @@ export default function ChannelDetailPage() {
     const [error, setError] = useState("");
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [submitError, setSubmitError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -104,6 +105,9 @@ export default function ChannelDetailPage() {
             const formData = new FormData();
             formData.set("title", trimmedTitle);
             formData.set("body", trimmedBody);
+            for (const file of selectedFiles) {
+                formData.append("attachments", file);
+            }
 
             const response = await fetch(`/api/channels/${channel.id}/posts`, {
                 method: "POST",
@@ -123,29 +127,34 @@ export default function ChannelDetailPage() {
                       createdAt?: string;
                   }
                 | undefined;
-
             if (!createdPost?.id || !createdPost.title || !createdPost.body || !createdPost.createdAt) {
                 throw new Error("Post created but no data was returned.");
             }
 
-            setPosts((current) => [
-                {
-                    id: createdPost.id,
-                    title: createdPost.title,
-                    body: createdPost.body,
-                    createdAt: createdPost.createdAt,
-                    author: {
-                        id: authUser.id,
-                        displayName: authUser.displayName,
-                    },
-                    attachments: [],
-                    topLevelReplyCount: 0,
-                    voteSummary: {
-                        upvotes: 0,
-                        downvotes: 0,
-                        score: 0,
-                    },
+            const createdAttachments: AttachmentSummary[] = Array.isArray(result?.data?.attachments)
+                ? (result.data.attachments as AttachmentSummary[])
+                : [];
+
+            const postToInsert: PostSummary = {
+                id: createdPost.id,
+                title: createdPost.title,
+                body: createdPost.body,
+                createdAt: createdPost.createdAt,
+                author: {
+                    id: authUser.id,
+                    displayName: authUser.displayName,
                 },
+                attachments: createdAttachments,
+                topLevelReplyCount: 0,
+                voteSummary: {
+                    upvotes: 0,
+                    downvotes: 0,
+                    score: 0,
+                },
+            };
+
+            setPosts((current) => [
+                postToInsert,
                 ...current,
             ]);
             setChannel((current) =>
@@ -158,6 +167,7 @@ export default function ChannelDetailPage() {
             );
             setTitle("");
             setBody("");
+            setSelectedFiles([]);
         } catch (err) {
             setSubmitError(err instanceof Error ? err.message : "Failed to create post.");
         } finally {
@@ -204,9 +214,12 @@ export default function ChannelDetailPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         ) : (
-                            <Button asChild variant="outline">
-                                <Link href="/signin">Sign in</Link>
-                            </Button>
+                            <Link
+                                href="/signin"
+                                className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                Sign in
+                            </Link>
                         )}
                         <ThemeToggle />
                     </div>
@@ -228,10 +241,12 @@ export default function ChannelDetailPage() {
                             <CreatePostCard
                                 title={title}
                                 body={body}
+                                selectedFiles={selectedFiles}
                                 submitError={submitError}
                                 isSubmitting={isSubmitting}
                                 onTitleChange={setTitle}
                                 onBodyChange={setBody}
+                                onFilesChange={setSelectedFiles}
                                 onSubmit={handleCreatePost}
                             />
                         ) : (
@@ -245,9 +260,12 @@ export default function ChannelDetailPage() {
                                             Sign in to create a post and take part in the conversation.
                                         </p>
                                     </div>
-                                    <Button asChild>
-                                        <Link href="/signin">Sign in to post</Link>
-                                    </Button>
+                                    <Link
+                                        href="/signin"
+                                        className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    >
+                                        Sign in to post
+                                    </Link>
                                 </CardContent>
                             </Card>
                         )}
