@@ -35,7 +35,7 @@ type Channel = {
 
 export default function ChannelsPage() {
     const router = useRouter();
-    const authUser = useAuth();
+    const { user: authUser, isAuthenticated } = useAuth();
     const [channels, setChannels] = useState<Channel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
@@ -68,7 +68,6 @@ export default function ChannelsPage() {
         void loadChannels();
     }, []);
 
-    const hasAuth = Boolean(authUser);
     const authLabel = authUser?.displayName || "Account";
 
     async function handleCreateChannel(event: React.FormEvent<HTMLFormElement>) {
@@ -163,7 +162,7 @@ export default function ChannelsPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {hasAuth ? (
+                        {isAuthenticated ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button
@@ -203,7 +202,7 @@ export default function ChannelsPage() {
                         </p>
                     </div>
 
-                    {hasAuth ? (
+                        {isAuthenticated ? (
                         <Button onClick={() => setIsCreateModalOpen(true)}>
                             <Plus className="h-4 w-4" />
                             Create Channel
@@ -236,7 +235,7 @@ export default function ChannelsPage() {
                     <div className="py-12 text-center">
                         <h3 className="text-lg font-medium text-foreground">No channels yet</h3>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            {hasAuth
+                            {isAuthenticated
                                 ? "Be the first to start a discussion space for your topic."
                                 : "Sign in to create the first channel and start a discussion space."}
                         </p>

@@ -4,7 +4,15 @@ import { createContext, useContext } from "react";
 
 import type { AuthUser } from "@/lib/auth";
 
-const AuthContext = createContext<AuthUser>(null);
+type AuthContextValue = {
+  user: AuthUser;
+  isAuthenticated: boolean;
+};
+
+const AuthContext = createContext<AuthContextValue>({
+  user: null,
+  isAuthenticated: false,
+});
 
 export function AuthProvider({
   user,
@@ -13,7 +21,16 @@ export function AuthProvider({
   user: AuthUser;
   children: React.ReactNode;
 }) {
-  return <AuthContext.Provider value={user}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: Boolean(user),
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
