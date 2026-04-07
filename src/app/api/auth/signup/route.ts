@@ -1,4 +1,4 @@
-import { ApiError, createdResponse, handleRouteError, readJsonBody } from "@/lib/api";
+import { ApiError, handleRouteError, readJsonBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";

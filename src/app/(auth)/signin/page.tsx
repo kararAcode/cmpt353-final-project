@@ -57,12 +57,7 @@ export default function SignInPage() {
         return
       }
 
-      const token = result?.data?.token
       const user = result?.data?.user
-
-      if (typeof token !== "string" || !token) {
-        throw new Error("Sign in succeeded but no token was returned.")
-      }
 
       if (
         typeof user?.id !== "string" ||
@@ -73,8 +68,6 @@ export default function SignInPage() {
         throw new Error("Sign in succeeded but no user was returned.")
       }
 
-      window.localStorage.setItem("authToken", token)
-      window.localStorage.setItem("authUser", JSON.stringify(user))
       router.push("/")
       router.refresh()
     } catch (err) {

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
+import { AUTH_COOKIE_NAME } from "@/lib/auth";
 import { ApiError, handleRouteError, jsonResponse, readJsonBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
@@ -44,8 +45,7 @@ export async function POST(request: NextRequest) {
             },
         );
 
-        return jsonResponse({
-            token,
+        const response = jsonResponse({
             user: {
                 id: user.id,
                 email: user.email,
@@ -53,6 +53,16 @@ export async function POST(request: NextRequest) {
                 role: user.role,
             },
         });
+
+        response.cookies.set(AUTH_COOKIE_NAME, token, {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 7,
+        });
+
+        return response;
     } catch (error) {
         return handleRouteError(error);
     }
