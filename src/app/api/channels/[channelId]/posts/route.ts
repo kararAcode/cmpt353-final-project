@@ -1,6 +1,6 @@
 import { ApiError, handleRouteError } from "@/lib/api";
 import { createAttachments } from "@/lib/attachments";
-import { requireAuthenticatedUser } from "@/lib/auth";
+import { getCurrentUser, requireAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Attachment } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
@@ -11,6 +11,7 @@ export async function GET(
 ) {
     try {
         const { channelId } = await params;
+        const currentUser = await getCurrentUser();
         const posts = await prisma.post.findMany({
             where: {
                 channelId,
@@ -72,6 +73,7 @@ export async function GET(
             },
             select: {
                 targetId: true,
+                userId: true,
                 value: true,
             },
         });
@@ -94,7 +96,7 @@ export async function GET(
                 current.downvotes += 1;
             }
 
-            current.score += vote.value;
+            current.score = current.upvotes - current.downvotes;
 
             voteMap.set(vote.targetId, current);
         }
@@ -102,6 +104,11 @@ export async function GET(
         const result = posts.map((post) => {
             return {
                 ...post,
+                currentUserVote:
+                    votes.find(
+                        (vote) =>
+                            vote.targetId === post.id && vote.userId === currentUser?.id,
+                    )?.value ?? null,
                 attachments: attachmentMap.get(post.id) ?? [],
                 topLevelReplyCount: replyCountMap.get(post.id) ?? 0,
                 voteSummary: voteMap.get(post.id) ?? {

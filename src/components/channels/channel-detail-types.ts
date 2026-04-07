@@ -22,6 +22,7 @@ export type PostSummary = {
     title: string;
     body: string;
     createdAt: string;
+    currentUserVote: number | null;
     author: {
         id: string;
         displayName: string;
@@ -41,6 +42,7 @@ export type ReplySummary = {
     parentReplyId: string | null;
     body: string;
     createdAt: string;
+    currentUserVote: number | null;
     author: {
         id: string;
         displayName: string;
