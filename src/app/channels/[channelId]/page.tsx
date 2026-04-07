@@ -28,7 +28,7 @@ import {
 export default function ChannelDetailPage() {
     const router = useRouter();
     const params = useParams<{ channelId: string }>();
-    const authUser = useAuth();
+    const { user: authUser, isAuthenticated } = useAuth();
     const [channel, setChannel] = useState<ChannelDetail | null>(null);
     const [posts, setPosts] = useState<PostSummary[]>([]);
     const [error, setError] = useState("");
@@ -38,7 +38,6 @@ export default function ChannelDetailPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const channelId = params.channelId;
-    const hasAuth = Boolean(authUser);
     const authLabel = authUser?.displayName || "Account";
 
     useEffect(() => {
@@ -179,7 +178,7 @@ export default function ChannelDetailPage() {
                     </Link>
 
                     <div className="flex items-center gap-3">
-                        {hasAuth ? (
+                        {isAuthenticated ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button
@@ -225,7 +224,7 @@ export default function ChannelDetailPage() {
                     <>
                         <ChannelHeroCard channel={channel} />
 
-                        {hasAuth ? (
+                        {isAuthenticated ? (
                             <CreatePostCard
                                 title={title}
                                 body={body}
@@ -253,7 +252,18 @@ export default function ChannelDetailPage() {
                             </Card>
                         )}
 
-                        <ChannelPostsSection posts={posts} hasAuth={hasAuth} />
+                        <ChannelPostsSection
+                            posts={posts}
+                            onPostReplyCountChange={(postId, topLevelReplyCount) => {
+                                setPosts((current) =>
+                                    current.map((post) =>
+                                        post.id === postId
+                                            ? { ...post, topLevelReplyCount }
+                                            : post,
+                                    ),
+                                );
+                            }}
+                        />
                     </>
                 ) : null}
             </section>

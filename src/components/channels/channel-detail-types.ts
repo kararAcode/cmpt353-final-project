@@ -30,6 +30,32 @@ export type PostSummary = {
     };
 };
 
+export type ReplySummary = {
+    id: string;
+    postId: string;
+    parentReplyId: string | null;
+    body: string;
+    createdAt: string;
+    author: {
+        id: string;
+        displayName: string;
+    };
+    attachments: Array<{
+        id: string;
+    }>;
+    voteSummary: {
+        upvotes: number;
+        downvotes: number;
+        score: number;
+    };
+    replies: ReplySummary[];
+};
+
+export type PostDetail = {
+    post: PostSummary;
+    replies: ReplySummary[];
+};
+
 export function formatChannelDate(value: string) {
     return new Intl.DateTimeFormat(undefined, {
         dateStyle: "medium",

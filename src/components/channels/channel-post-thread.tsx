@@ -1,0 +1,186 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { MessageCircle, ThumbsUp } from "lucide-react";
+
+import { ReplySummary, formatChannelDate } from "@/components/channels/channel-detail-types";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+type ReplyComposerProps = {
+    onSubmit: (body: string) => Promise<boolean>;
+    onCancel: () => void;
+    isSubmitting: boolean;
+    error: string;
+};
+
+type ReplyListProps = {
+    replies: ReplySummary[];
+    isAuthenticated: boolean;
+    replyTargetId: string | null;
+    replyError: string;
+    isSubmittingReply: boolean;
+    parentAuthorName?: string;
+    onReplyClick: (replyId: string) => void;
+    onReplySubmit: (replyId: string, body: string) => Promise<boolean>;
+    onReplyCancel: () => void;
+};
+
+function getInitials(name: string) {
+    const parts = name.trim().split(/\s+/).slice(0, 2);
+    return parts.map((part) => part[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
+function ReplyAvatar({ name }: { name: string }) {
+    return (
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
+            {getInitials(name)}
+        </div>
+    );
+}
+
+function ReplyActions({
+    score,
+    attachmentsCount,
+    isAuthenticated,
+    onReplyClick,
+}: {
+    score: number;
+    attachmentsCount: number;
+    isAuthenticated: boolean;
+    onReplyClick: () => void;
+}) {
+    return (
+        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+                <ThumbsUp className="h-3.5 w-3.5" />
+                {score}
+            </span>
+            {attachmentsCount > 0 ? <span>{attachmentsCount} attachments</span> : null}
+            {isAuthenticated ? (
+                <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-foreground"
+                    onClick={onReplyClick}
+                >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    Reply
+                </button>
+            ) : null}
+        </div>
+    );
+}
+
+export function ReplyComposer({
+    onSubmit,
+    onCancel,
+    isSubmitting,
+    error,
+}: ReplyComposerProps) {
+    const [body, setBody] = useState("");
+
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        const trimmedBody = body.trim();
+        if (!trimmedBody) {
+            return;
+        }
+
+        const didSubmit = await onSubmit(trimmedBody);
+
+        if (didSubmit) {
+            setBody("");
+        }
+    }
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-3">
+            <textarea
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                placeholder="Write a reply..."
+                rows={3}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            <div className="flex items-center gap-2">
+                <Button type="submit" size="sm" disabled={isSubmitting || !body.trim()}>
+                    {isSubmitting ? "Replying..." : "Reply"}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+                    Cancel
+                </Button>
+            </div>
+        </form>
+    );
+}
+
+export function ReplyList({
+    replies,
+    isAuthenticated,
+    replyTargetId,
+    replyError,
+    isSubmittingReply,
+    parentAuthorName,
+    onReplyClick,
+    onReplySubmit,
+    onReplyCancel,
+}: ReplyListProps) {
+    return (
+        <div className={cn("divide-y divide-border/70", parentAuthorName && "mt-4")}>
+            {replies.map((reply) => (
+                <div key={reply.id} className="pt-4 first:pt-0">
+                    <div className="flex gap-3">
+                        <ReplyAvatar name={reply.author.displayName} />
+                        <div className="min-w-0 flex-1 space-y-2">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span className="text-sm font-semibold text-foreground">
+                                    {reply.author.displayName}
+                                </span>
+                                {parentAuthorName ? (
+                                    <span className="text-xs text-muted-foreground">
+                                        Replying to {parentAuthorName}
+                                    </span>
+                                ) : null}
+                            </div>
+                            <p className="text-sm leading-6 text-foreground">{reply.body}</p>
+                            <p className="text-xs text-muted-foreground">
+                                {formatChannelDate(reply.createdAt)}
+                            </p>
+                            <ReplyActions
+                                score={reply.voteSummary.score}
+                                attachmentsCount={reply.attachments.length}
+                                isAuthenticated={isAuthenticated}
+                                onReplyClick={() => onReplyClick(reply.id)}
+                            />
+                            {replyTargetId === reply.id ? (
+                                <ReplyComposer
+                                    error={replyError}
+                                    isSubmitting={isSubmittingReply}
+                                    onCancel={onReplyCancel}
+                                    onSubmit={(body) => onReplySubmit(reply.id, body)}
+                                />
+                            ) : null}
+                            {reply.replies.length > 0 ? (
+                                <div className="pl-3 sm:pl-5">
+                                    <ReplyList
+                                        replies={reply.replies}
+                                        isAuthenticated={isAuthenticated}
+                                        replyTargetId={replyTargetId}
+                                        replyError={replyError}
+                                        isSubmittingReply={isSubmittingReply}
+                                        parentAuthorName={reply.author.displayName}
+                                        onReplyClick={onReplyClick}
+                                        onReplySubmit={onReplySubmit}
+                                        onReplyCancel={onReplyCancel}
+                                    />
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
