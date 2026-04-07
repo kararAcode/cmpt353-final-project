@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,13 +12,18 @@ import { Hash, ArrowRight } from "lucide-react"
 
 export default function SignInPage() {
   const router = useRouter()
-  const [isSignUp, setIsSignUp] = useState(false)
+  const searchParams = useSearchParams()
+  const [isSignUp, setIsSignUp] = useState(searchParams.get("mode") === "signup")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  useEffect(() => {
+    setIsSignUp(searchParams.get("mode") === "signup")
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,7 +53,7 @@ export default function SignInPage() {
 
       if (isSignUp) {
         setSuccess("Account created. Sign in to continue.")
-        setIsSignUp(false)
+        router.replace("/signin")
         return
       }
 
@@ -168,7 +173,7 @@ export default function SignInPage() {
               {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
               <button
                 type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={() => router.replace(isSignUp ? "/signin" : "/signin?mode=signup")}
                 className="text-accent hover:underline font-medium"
               >
                 {isSignUp ? "Sign in" : "Sign up"}

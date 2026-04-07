@@ -1,7 +1,12 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { ArrowRight, Image as ImageIcon, MessageSquare, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Hero() {
+    const router = useRouter();
+
     return (
         <section className="relative overflow-hidden px-4 pb-20 pt-32 sm:px-6 lg:px-8">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent/10 via-background to-background" />
@@ -28,10 +33,14 @@ export function Hero() {
                     </p>
 
                     <div className="flex flex-col gap-4 sm:flex-row">
-                        <Button size="lg" className="gap-2">
+                        <Button
+                            size="lg"
+                            className="gap-2"
+                            onClick={() => router.push("/signin?mode=signup")}
+                        >
                             Start Free <ArrowRight className="h-4 w-4" />
                         </Button>
-                        <Button size="lg" variant="outline">
+                        <Button size="lg" variant="outline" onClick={() => router.push("/signin")}>
                             Watch Demo
                         </Button>
                     </div>

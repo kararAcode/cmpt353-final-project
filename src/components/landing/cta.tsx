@@ -1,7 +1,12 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function CTA() {
+    const router = useRouter();
+
     return (
         <section id="pricing" className="px-4 py-24 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-4xl">
@@ -18,13 +23,18 @@ export function CTA() {
                         </p>
 
                         <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                            <Button size="lg" className="w-full gap-2 sm:w-auto">
+                            <Button
+                                size="lg"
+                                className="w-full gap-2 sm:w-auto"
+                                onClick={() => router.push("/signin?mode=signup")}
+                            >
                                 Get Started Free <ArrowRight className="h-4 w-4" />
                             </Button>
                             <Button
                                 size="lg"
                                 variant="outline"
                                 className="w-full sm:w-auto"
+                                onClick={() => router.push("/signin")}
                             >
                                 Schedule a Demo
                             </Button>

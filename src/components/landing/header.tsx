@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Hash, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -14,6 +15,7 @@ const navLinks = [
 
 export function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const router = useRouter();
 
     return (
         <header className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
@@ -42,10 +44,12 @@ export function Header() {
 
                     <div className="hidden items-center gap-3 md:flex">
                         <ThemeToggle />
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => router.push("/signin")}>
                             Sign In
                         </Button>
-                        <Button size="sm">Get Started</Button>
+                        <Button size="sm" onClick={() => router.push("/signin?mode=signup")}>
+                            Get Started
+                        </Button>
                     </div>
 
                     <button
@@ -83,10 +87,26 @@ export function Header() {
                                 </span>
                                 <ThemeToggle />
                             </div>
-                            <Button variant="ghost" size="sm" className="justify-start">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="justify-start"
+                                onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    router.push("/signin");
+                                }}
+                            >
                                 Sign In
                             </Button>
-                            <Button size="sm">Get Started</Button>
+                            <Button
+                                size="sm"
+                                onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    router.push("/signin?mode=signup");
+                                }}
+                            >
+                                Get Started
+                            </Button>
                         </div>
                     </div>
                 </div>
