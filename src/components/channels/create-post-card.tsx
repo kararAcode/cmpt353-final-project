@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 
 import { PenSquare } from "lucide-react";
 
+import { ScreenshotPicker } from "@/components/channels/screenshot-picker";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -18,20 +19,24 @@ import { Label } from "@/components/ui/label";
 type CreatePostCardProps = {
     title: string;
     body: string;
+    selectedFiles: File[];
     submitError: string;
     isSubmitting: boolean;
     onTitleChange: (value: string) => void;
     onBodyChange: (value: string) => void;
+    onFilesChange: (files: File[]) => void;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
 };
 
 export function CreatePostCard({
     title,
     body,
+    selectedFiles,
     submitError,
     isSubmitting,
     onTitleChange,
     onBodyChange,
+    onFilesChange,
     onSubmit,
 }: CreatePostCardProps) {
     return (
@@ -69,6 +74,12 @@ export function CreatePostCard({
                             className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         />
                     </div>
+
+                    <ScreenshotPicker
+                        files={selectedFiles}
+                        onFilesChange={onFilesChange}
+                        buttonText="Add one or more screenshots"
+                    />
 
                     {submitError ? (
                         <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">

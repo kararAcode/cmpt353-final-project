@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useAuth } from "@/app/auth-provider";
+import { AttachmentGallery } from "@/components/channels/attachment-gallery";
 import {
     PostDetail,
     PostSummary,
@@ -84,7 +85,7 @@ export function ChannelPostCard({
         } catch {}
     }
 
-    async function submitReply(targetId: string, body: string) {
+    async function submitReply(targetId: string, body: string, files: File[]) {
         const endpoint =
             targetId === post.id
                 ? `/api/posts/${post.id}/replies`
@@ -96,6 +97,9 @@ export function ChannelPostCard({
 
             const formData = new FormData();
             formData.set("body", body);
+            for (const file of files) {
+                formData.append("attachments", file);
+            }
 
             const response = await fetch(endpoint, {
                 method: "POST",
@@ -138,6 +142,7 @@ export function ChannelPostCard({
                 <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
                     {post.body}
                 </p>
+                <AttachmentGallery attachments={post.attachments} />
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                     <span className="rounded-full bg-muted px-2.5 py-1">
                         {post.topLevelReplyCount}{" "}
@@ -181,7 +186,7 @@ export function ChannelPostCard({
                                     setReplyTargetId(null);
                                     setReplyError("");
                                 }}
-                                onSubmit={(body) => submitReply(post.id, body)}
+                                onSubmit={(body, files) => submitReply(post.id, body, files)}
                             />
                         ) : null}
                         {isLoadingReplies ? (
