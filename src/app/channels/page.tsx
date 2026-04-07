@@ -24,6 +24,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { pickChannelThumbnail } from "@/lib/channel-branding";
 
 type Channel = {
     id: string;
@@ -31,20 +32,6 @@ type Channel = {
     description: string | null;
     postCount: number;
 };
-
-const THUMBNAILS = [
-    { emoji: "💬", bgClass: "bg-primary/15 text-primary" },
-    { emoji: "🧠", bgClass: "bg-accent/15 text-accent" },
-    { emoji: "⚙️", bgClass: "bg-secondary text-secondary-foreground" },
-    { emoji: "🚀", bgClass: "bg-primary/10 text-primary" },
-    { emoji: "🛠️", bgClass: "bg-accent/10 text-accent" },
-    { emoji: "📦", bgClass: "bg-secondary/80 text-secondary-foreground" },
-];
-
-function pickThumbnail(seed: string) {
-    const value = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    return THUMBNAILS[value % THUMBNAILS.length] ?? THUMBNAILS[0];
-}
 
 export default function ChannelsPage() {
     const router = useRouter();
@@ -257,29 +244,32 @@ export default function ChannelsPage() {
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {channels.map((channel) => {
-                            const thumbnail = pickThumbnail(channel.id + channel.name);
+                            const thumbnail = pickChannelThumbnail(channel.id + channel.name);
 
                             return (
-                                <Card key={channel.id} className="transition-shadow hover:shadow-md">
-                                    <CardHeader className="space-y-4">
-                                        <div
-                                            className={`flex h-12 w-12 items-center justify-center rounded-xl text-xl ${thumbnail.bgClass}`}
-                                        >
-                                            <span aria-hidden="true">{thumbnail.emoji}</span>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <CardTitle className="capitalize">{channel.name}</CardTitle>
-                                            <CardDescription>
-                                                {channel.postCount} {channel.postCount === 1 ? "post" : "posts"}
-                                            </CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground">
-                                            {channel.description || "No description yet."}
-                                        </p>
-                                    </CardContent>
-                                </Card>
+                                <Link key={channel.id} href={`/channels/${channel.id}`} className="block">
+                                    <Card className="h-full transition-shadow hover:shadow-md">
+                                        <CardHeader className="space-y-4">
+                                            <div
+                                                className={`flex h-12 w-12 items-center justify-center rounded-xl text-xl ${thumbnail.bgClass}`}
+                                            >
+                                                <span aria-hidden="true">{thumbnail.emoji}</span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <CardTitle className="capitalize">{channel.name}</CardTitle>
+                                                <CardDescription>
+                                                    {channel.postCount}{" "}
+                                                    {channel.postCount === 1 ? "post" : "posts"}
+                                                </CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <p className="text-sm text-muted-foreground">
+                                                {channel.description || "No description yet."}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
                             );
                         })}
                     </div>

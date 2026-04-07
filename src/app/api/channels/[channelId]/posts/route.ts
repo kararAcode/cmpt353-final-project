@@ -15,6 +15,9 @@ export async function GET(
             where: {
                 channelId,
             },
+            orderBy: {
+                createdAt: "desc",
+            },
 
             include: {
                 author: {
