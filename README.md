@@ -34,3 +34,25 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Database seeding
+
+Apply the schema and seed the database with:
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+The seed script is idempotent, so rerunning it updates the seeded accounts and starter records instead of duplicating them.
+
+Default seeded admin credentials:
+
+- Email: `admin@example.com`
+- Password: `Admin123!`
+
+You can override the seeded admin account with these environment variables:
+
+- `SEED_ADMIN_NAME`
+- `SEED_ADMIN_EMAIL`
+- `SEED_ADMIN_PASSWORD`
