@@ -1,0 +1,7 @@
+# Architecture + DB Choice Justification
+
+The project uses Next.js (App Router) as a full-stack framework, allowing both the frontend UI and backend API to live within the same codebase. Instead of introducing a separate backend service (e.g., Express), the built-in Next.js route handlers were used to implement the API. This reduced the amount of setup and coordination required between services and kept the development workflow more straightforward. Given that the system is self-contained (no external services interacting with the API), this approach provided a clean and maintainable structure.
+
+This architecture also simplified concerns like routing, request handling, and data fetching, since both client and server logic follow the same conventions. Additionally, it made it easier to enforce authentication and validation at the API level while keeping the frontend closely aligned with backend behavior.
+
+For the database, PostgreSQL was chosen due to the highly relational nature of the system. The domain includes multiple interconnected entities such as users, channels, posts, replies, votes, and attachments. A relational database allows these relationships to be clearly defined and enforced through foreign keys and constraints. Features like indexing are also beneficial, particularly for search functionality and querying content efficiently as data grows. Overall, PostgreSQL provides a reliable and well-suited foundation for structured, relational data.
