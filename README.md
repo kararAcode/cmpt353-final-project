@@ -1,4 +1,10 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CMPT353 Final Project
+
+This project is a Next.js app backed by PostgreSQL and Prisma.
+
+## Documentation
+
+- API reference: [docs/api-reference.md](docs/api-reference.md)
 
 ## Getting Started
 
