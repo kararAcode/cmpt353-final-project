@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## API testing
+
+Playwright is configured to exercise the API routes against a local Next.js server and a dedicated Postgres test schema.
+
+Run the API suite with:
+
+```bash
+npm run test:api
+```
+
+That command starts the app on port `3200`, runs the tests, prints pass/fail results in the terminal, and writes an HTML report to `playwright-report/api`.
+
+By default the test runner uses:
+
+- `postgresql://postgres:postgres@127.0.0.1:5432/app?schema=playwright`
+- a Playwright-only JWT secret from the test config
+- `.playwright-artifacts/attachments` for uploaded test files
+
+Set `PLAYWRIGHT_DATABASE_URL` if you want the tests to use a different database connection.
